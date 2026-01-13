@@ -25,6 +25,11 @@ export default function Admin({ logout }) {
 
 
 
+
+
+
+
+
   useEffect(() => {
     fetchList();
     socket.on("adminError", (p) => {
@@ -34,8 +39,16 @@ export default function Admin({ logout }) {
   }, []);
 
   const fetchList = async () => {
+
+
+
+
+
+
+
+
     try {
-      const r = await axios.get( "          https://puzzle-game-production.up.railway.app/images");
+      const r = await axios.get( "          puzzle-game-production-1013.up.railway.app/images");
       setSavedList(r.data || []);
     } catch (e) {
       console.error(e);
@@ -96,14 +109,14 @@ export default function Admin({ logout }) {
     try {
       const fd = new FormData();
       fd.append("image", file);
-      const r = await axios.post("https://puzzle-game-production.up.railway.app/upload", fd, {
+      const r = await axios.post("    puzzle-game-production-1013.up.railway.app/upload", fd, {
         headers: { "Content-Type": "multipart/form-data" },
         timeout: 20000,
       });
       const { filename, originalname } = r.data || {};
       if (!filename) throw new Error("Upload returned no filename");
       await axios.post(
-      " https://puzzle-game-production.up.railway.app/save-image",
+      " puzzle-game-production-1013.up.railway.app/save-image",
 
 
 
@@ -126,7 +139,7 @@ export default function Admin({ logout }) {
       console.error("Upload error:", e);
       if (e.message && e.message.includes("Network Error")) {
         alert(
-          "Upload error: Network Error — تأكد من تشغيل السيرفر على https://puzzle-game-production.up.railway.app            وأنه يسمح بالـ CORS."
+          "Upload error: Network Error — تأكد من تشغيل السيرفر على puzzle-game-production-1013.up.railway.app           وأنه يسمح بالـ CORS."
         );
       } else {
         alert(
