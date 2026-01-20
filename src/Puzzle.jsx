@@ -9,7 +9,7 @@ const encouragementNames = [
 ];
 
 
-const socket = io("https://puzzle-game-production-1013.up.railway.app");
+const socket = io("https://asset-manager--bdallahashrf110.replit.app");
 
 export default function Puzzle({ images = [], playerName = "Player" }) {
   const [gameImages, setGameImages] = useState([]);

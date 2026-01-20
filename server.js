@@ -13,6 +13,11 @@ const cors = require("cors");
 
 
 
+
+
+
+
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
@@ -171,7 +176,21 @@ app.post("/upload", upload.single("image"), (req, res) => {
 
 app.post("/save-image", (req, res) => {
   const { filename, originalname, duration, answer } = req.body;
-  const fullUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+
+
+
+
+
+
+
+const fullUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+
+
+
+
+
+
+
   savedImages.push({
     filename, originalname,
     duration: Number(duration || 1),
