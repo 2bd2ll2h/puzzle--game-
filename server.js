@@ -171,7 +171,7 @@ app.post("/upload", upload.single("image"), (req, res) => {
 
 app.post("/save-image", (req, res) => {
   const { filename, originalname, duration, answer } = req.body;
-  const fullUrl = `https://puzzle-game-production-1013.up.railway.app/uploads/${filename}`;
+  const fullUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
   savedImages.push({
     filename, originalname,
     duration: Number(duration || 1),
