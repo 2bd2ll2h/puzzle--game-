@@ -1,4 +1,3 @@
-// src/Admin.jsx
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { socket } from "./socket";
@@ -19,26 +18,17 @@ export default function Admin({ logout }) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   
 
 
+
+  // --- إضافة تعديل أبعاد الشاشة ---
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const resizer = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", resizer);
+    return () => window.removeEventListener("resize", resizer);
+  }, []);
 
   useEffect(() => {
     fetchList();
@@ -49,21 +39,19 @@ export default function Admin({ logout }) {
   }, []);
 
   const fetchList = async () => {
-
-
-
-
-
-
-
-
     try {
-      const r = await axios.get       ("https://asset-manager--bdallahashrf110.replit.app/images");
+      const r = await axios.get("https://asset-manager--bdallahashrf110.replit.app/images");
       setSavedList(r.data || []);
     } catch (e) {
       console.error(e);
     }
   };
+
+
+
+
+
+
 
   const onChoose = (e) => {
     const f = e.target.files[0];
@@ -74,186 +62,52 @@ export default function Admin({ logout }) {
 
   const doUpload = async () => {
     if (!file) return alert("اختار صورة أولاً");
-  
+    if (!answer.trim()) return alert("لازم تكتب إجابة للصورة قبل الحفظ");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-    
-
-
-
-
-
-
-  if (!answer.trim())
-    return alert("لازم تكتب إجابة للصورة قبل الحفظ");
-
-  setSaving(true);
+    setSaving(true);
     try {
       const fd = new FormData();
       fd.append("image", file);
 
-
-
-
-
-
-
-
-      
-
-
-
-
-
-
-
-
-
-
-
-
-      
-
-
-
-
-
-
-      
-
-
-const r = await axios.post("https://asset-manager--bdallahashrf110.replit.app/upload", fd, {
+      const r = await axios.post("https://asset-manager--bdallahashrf110.replit.app/upload", fd, {
         headers: { "Content-Type": "multipart/form-data" },
         timeout: 20000,
       });
       const { filename, originalname } = r.data || {};
       if (!filename) throw new Error("Upload returned no filename");
       await axios.post(
-   "https://asset-manager--bdallahashrf110.replit.app/save-image",
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        "https://asset-manager--bdallahashrf110.replit.app/save-image",
         { filename, originalname, duration, answer },
         { timeout: 10000 }
       );
       await fetchList();
       setFile(null);
       setPreviewUrl(null);
-
-
-
-
-
-
-
-      
       setAnswer("");
       if (fileRef.current) fileRef.current.value = "";
-      alert("Image saved");                    
-
-
-
-
-
-
+      alert("Image saved");
     } catch (e) {
       console.error("Upload error:", e);
       if (e.message && e.message.includes("Network Error")) {
-        alert(
-          "Upload error: Network Error — تأكد من تشغيل السيرفر على  https://asset-manager--bdallahashrf110.replit.app              وأنه يسمح بالـ CORS."
-        );
+        alert("Upload error: Network Error — تأكد من تشغيل السيرفر.");
       } else {
-        alert(
-          "Upload error: " +
-            (e.response?.data?.error || e.message || "Unknown")
-        );
+        alert("Upload error: " + (e.response?.data?.error || e.message || "Unknown"));
       }
     }
     setSaving(false);
   };
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   const handleStart = () => {
     socket.emit("adminTriggerStart");
   };
 
   return (
-    <div style={styles.full}>
-      <div style={styles.centerBox}>
+    <div style={{...styles.full, padding: isMobile ? "10px" : "0"}}>
+      <div style={{...styles.centerBox, width: isMobile ? "100%" : "90%", height: isMobile ? "auto" : "90vh", overflowY: "auto"}}>
         <h2 style={{ marginBottom: 10 }}>صفحة الأدمن</h2>
 
-        <div style={styles.bigBox}>
-          <div style={styles.previewBox}>
+        <div style={{...styles.bigBox, flexDirection: isMobile ? "column" : "row"}}>
+          <div style={{...styles.previewBox, width: isMobile ? "100%" : 520, height: isMobile ? 250 : 360}}>
             {previewUrl ? (
               <img
                 src={previewUrl}
@@ -275,7 +129,7 @@ const r = await axios.post("https://asset-manager--bdallahashrf110.replit.app/up
               type="file"
               accept="image/*"
               onChange={onChoose}
-              style={{ marginBottom: 10 }}
+              style={{ marginBottom: 10, width: "100%" }}
             />
 
             <div style={{ marginBottom: 10 }}>
@@ -298,21 +152,21 @@ const r = await axios.post("https://asset-manager--bdallahashrf110.replit.app/up
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 placeholder="الإجابة الصحيحة..."
-                style={{ marginLeft: 8, padding: "6px", width: "60%" }}
+                style={{ marginLeft: 8, padding: "6px", width: isMobile ? "90%" : "60%" }}
               />
             </div>
 
             <button
               onClick={doUpload}
               disabled={saving}
-              style={styles.orangeBtn}
+              style={{...styles.orangeBtn, width: isMobile ? "100%" : "auto"}}
             >
               {saving ? "جارٍ الحفظ..." : "حفظ الصورة"}
             </button>
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: "10px" }}>
           <button onClick={handleStart} style={styles.orangeBtn}>
             بدء اللعبة (من الأدمن)
           </button>
@@ -323,7 +177,7 @@ const r = await axios.post("https://asset-manager--bdallahashrf110.replit.app/up
 
         <div style={{ marginTop: 20 }}>
           <h4>قائمة الصور المحفوظة</h4>
-          <ul>
+          <ul style={{ maxHeight: "200px", overflowY: "auto" }}>
             {savedList.map((s, i) => (
               <li key={i}>
                 {s.originalname} — duration: {s.duration} — answer: {s.answer}
@@ -336,33 +190,30 @@ const r = await axios.post("https://asset-manager--bdallahashrf110.replit.app/up
   );
 }
 
+
+
+
+
+
 const styles = {
   full: {
-    height: "100vh",
+    minHeight: "100vh",
     width: "100vw",
-    background:
-      "linear-gradient(-45deg, #ff7a00, #ff9e3d, #ffb74d, #ff7a00)",
+    background: "linear-gradient(-45deg, #ff7a00, #ff9e3d, #ffb74d, #ff7a00)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontFamily: "Arial, sans-serif",
   },
   centerBox: {
-    width: "90%",
     maxWidth: 1000,
     background: "white",
     padding: 20,
     borderRadius: 12,
     boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
   },
-
-
-
-  
   bigBox: { display: "flex", gap: 20, alignItems: "center" },
   previewBox: {
-    width: 520,
-    height: 360,
     background: "#fafafa",
     border: "1px dashed #ddd",
     display: "flex",
@@ -377,18 +228,7 @@ const styles = {
     padding: "10px 16px",
     borderRadius: 8,
     cursor: "pointer",
-    marginRight: 8,
   },
-
-
-
-
-
-
-
-
-
-
   backBtn: {
     background: "#fff",
     color: "#333",
@@ -396,14 +236,8 @@ const styles = {
     padding: "10px 16px",
     borderRadius: 8,
     cursor: "pointer",
-    marginLeft: 8,
   },
 };
-
-
-
-
-
 
 
 

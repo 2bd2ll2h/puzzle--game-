@@ -89,6 +89,14 @@ let questionProgress = {}; // { questionIndex: { answered: false, winners: [] } 
 let countdownTimer = null;
 let countdownValue = 3;
 
+
+
+
+
+
+let gameStarted = false; // لمتابعة حالة اللعبة
+let currentQuestionIndex = 0; // متابعة السؤال الحالي للسيرفر
+
 const emitPlayers = () => io.emit("updatePlayers", players);
 
 const emitScores = (targetSocketId = null) => {
@@ -144,14 +152,28 @@ const cancelCountdown = () => {
 
 
 
-
-
 io.on("connection", (socket) => {
   socket.on("join", (name) => {
-    if (players.find(p => p.id === socket.id)) return;
-    players.push({ id: socket.id, name: name       , ready: false, score: 0 });
+    let p = players.find(x => x.name === name);
+    if (!p) {
+      players.push({ id: socket.id, name: name, ready: false, score: 0 });
+    } else {
+      p.id = socket.id; // تحديث الاي دي عند الريفرش
+    }
+    
+    // لو اللعبة بدأت واللاعب عمل ريفريش، نرجعه لمكانه
+    if (gameStarted) {
+        socket.emit("rejoinGame", { index: currentQuestionIndex, images: savedImages });
+    }
+    
     emitPlayers();
   });
+
+
+
+
+
+
 
   socket.on("requestScores", () => {
     emitScores(socket.id); // نرسل للشخص اللي طلب فقط للحفاظ على الثبات
@@ -199,10 +221,25 @@ io.on("connection", (socket) => {
 
 
 
+
+
+
+
+
+
 socket.on("checkSkipStatus", ({ index }) => {
     if (questionProgress[index] && questionProgress[index].answered) {
       socket.emit("globalSkipEnable", { index });
     }
+  });
+
+
+
+
+
+
+  socket.on("syncIndex", (idx) => {
+    currentQuestionIndex = idx;
   });
 
   socket.on("playerAnswer", ({ isCorrect, index }) => {
@@ -223,13 +260,25 @@ socket.on("checkSkipStatus", ({ index }) => {
     emitScores();
   });
 
+
+socket.on("resetGame", () => {
+      gameStarted = false;
+      currentQuestionIndex = 0;
+  });
+
+
+
+
   socket.on("disconnect", () => {
-    players = players.filter(p => p.id !== socket.id);
-    emitPlayers();
-    cancelCountdown();
+    // لا نحذف اللاعب فوراً لكي نحافظ على سكوره عند الريفرش
+    setTimeout(() => {
+        const check = io.sockets.sockets.get(socket.id);
+        if (!check) {
+             // يمكن تفعيل الحذف هنا لو أردت
+        }
+    }, 5000);
   });
 });
-
 
 
 
