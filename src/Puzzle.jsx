@@ -166,7 +166,27 @@ export default function Puzzle({ images = [], playerName = "Player" }) {
     // الريفرش: العودة لنفس السؤال
     socket.on("rejoinGame", (data) => {
         setGameImages(data.images);
-        setIndex(data.index);
+       
+
+
+
+
+
+
+
+
+
+
+
+        setIndex(data.currentIndex);
+      setTime(data.currentTime);
+
+
+
+
+
+
+      
     });
 
     socket.on("updateScores", (data) => {
@@ -193,45 +213,47 @@ export default function Puzzle({ images = [], playerName = "Player" }) {
   const imgs = gameImages.length ? gameImages : images;
   const img = imgs[index];
 
-  useEffect(() => {
+
+
+
+useEffect(() => {
     if (!img || isFinished) return;
 
-    setAnswer("");
-    setStatus("neutral");
-    setTime(img.duration * 60);
-    setShowResults(false);
-    setSkipAvailable(false);
-    
-    socket.emit("syncIndex", index); // إعلام السيرفر بالسؤال الحالي للريفرش
+    // إذا لم يكن هناك وقت قادم من الريفرش (يعني سؤال جديد)، نضع وقت الصورة
+    if (time === 0 && status === "neutral") {
+      setAnswer("");
+      setStatus("neutral");
+      setTime(img.duration * 60);
+      setShowResults(false);
+      setSkipAvailable(false);
+    }
 
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-        setTime(t => {
-            if (t <= 1) {
-                clearInterval(timerRef.current);
-                skip();
-                return 0;
-            }
-            if (t <= 3 && !isFinished) playTick();
-            return t - 1;
-        });
+      setTime(t => {
+        if (t <= 1) {
+          clearInterval(timerRef.current);
+          skip();
+          return 0;
+        }
+        
+        const newTime = t - 1;
+        // تحديث السيرفر كل ثانية بمكاني الحالي والوقت المتبقي لي
+        socket.emit("updateProgress", { index: index, time: newTime });
+
+        if (newTime <= 3 && !isFinished) playTick();
+        return newTime;
+      });
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [index, img, isFinished]);
+  }, [index, img, isFinished, showResults]); // إضافة showResults للمراقبة
 
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60).toString().padStart(2, "0");
     const s = (sec % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
-
-
-
-
-
-
-
 
   const submit = () => {
     const isCorrect = answer.trim().toLowerCase() === img.answer.toLowerCase();
@@ -246,21 +268,24 @@ export default function Puzzle({ images = [], playerName = "Player" }) {
     setSkipAvailable(false);
 
     if (index + 1 >= imgs.length) {
-        setIsFinished(true);
-        if (leader === playerName) {
-            setShowEncouragement(true);
-        } else {
-            setShowResults(true);
-            setFinalResults(true);
-        }
-    } else {
+      setIsFinished(true);
+      if (leader === playerName) {
+        setShowEncouragement(true);
+      } else {
         setShowResults(true);
-        setFinalResults(false);
+        setFinalResults(true);
+      }
+    } else {
+      setShowResults(true);
+      setFinalResults(false);
     }
   };
 
   const nextQuestion = () => {
     setIndex(i => i + 1);
+    setTime(0); // تصفير الوقت ليقوم الـ useEffect بتحميل وقت السؤال الجديد
+    setStatus("neutral");
+    setAnswer("");
   };
 
   const refreshScores = () => {
