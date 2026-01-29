@@ -24,9 +24,14 @@ const storage = multer.diskStorage({
     cb(null, name);
   },
 });
+
+
+
+
+
+
 const upload = multer({ storage });
 
-// Game State
 let savedImages = [];
 let players = [];
 let gameStarted = false;
@@ -43,18 +48,16 @@ io.on("connection", (socket) => {
   socket.on("join", (name) => {
     let p = players.find(x => x.name === name);
 
-    // إذا اللعبة بدأت وهذا اللاعب كان مسجلاً من قبل (حالة ريفرش أثناء اللعبة)
     if (gameStarted && p) {
-      p.id = socket.id; // تحديث السوكيت آيدي الجديد
+      p.id = socket.id; 
       socket.emit("rejoinGame", {
         currentIndex: p.currentIndex || 0,
         currentTime: p.currentTime || 0,
         score: p.score,
         images: savedImages
       });
-      console.log(`Player ${name} resumed game.`);
     } else {
-      // إذا كنا في الانتظار أو لاعب جديد تماماً، نحذف أي تكرار ونبدأ من الصفر
+      // لو اللعبة مابدأت، نحذف أي سجل قديم للاسم ده عشان يبدأ فريش
       players = players.filter(x => x.name !== name);
       players.push({ 
         id: socket.id, 
@@ -64,12 +67,10 @@ io.on("connection", (socket) => {
         currentIndex: 0,
         currentTime: 0 
       });
-      console.log(`New join: ${name}`);
     }
     emitPlayers();
   });
 
-  // تحديث تقدم اللاعب لحظة بلحظة (السؤال والوقت المتبقي)
   socket.on("updateProgress", ({ index, time }) => {
     let p = players.find(x => x.id === socket.id);
     if (p) {
@@ -97,32 +98,21 @@ io.on("connection", (socket) => {
     const p = players.find(x => x.id === socket.id);
     if (!p) return;
     if (isCorrect) {
-        // منطق السكور الخاص بك (مثلاً أول واحد يجاوب ياخد أكتر)
         p.score += 1; 
         emitScores();
+        // نبعت إشارة للاعب نفسه إن السكيب متاح له دلوقت
+        socket.emit("enableLocalSkip");
     }
   });
 
   socket.on("disconnect", () => {
-    // إذا لم تبدأ اللعبة بعد، نحذفه تماماً ليعود لصفحة الدخول عند الريفرش
+    // التعديل المطلوب: لو اللعبة مابدأت، احذفه تماماً
     if (!gameStarted) {
       players = players.filter(p => p.id !== socket.id);
       emitPlayers();
-      console.log("Player removed from waiting list.");
     }
+    // لو اللعبة بدأت، بنسيب بياناته عشان الـ Rejoin
   });
-
-  socket.on("resetGame", () => {
-    gameStarted = false;
-    players = [];
-    emitPlayers();
-  });
-
-
-
-
-
-  
 });
 
 app.post("/upload", upload.single("image"), (req, res) => {
@@ -131,11 +121,20 @@ app.post("/upload", upload.single("image"), (req, res) => {
 
 app.post("/save-image", (req, res) => {
   const { filename, originalname, duration, answer } = req.body;
-  const fullUrl = `https://asset-manager--bdallahashrf110.replit.app/uploads/${filename}`;
+  // تأكد من أن الرابط صحيح
+  const fullUrl = `/uploads/${filename}`; 
   savedImages.push({ filename, originalname, duration: Number(duration), answer, url: fullUrl });
   res.json({ ok: true });
 });
 
 app.get("/images", (_, res) => res.json(savedImages));
+
+
+
+
+
+
+
+
 
 server.listen(process.env.PORT || 3001, "0.0.0.0", () => console.log("Server Running"));

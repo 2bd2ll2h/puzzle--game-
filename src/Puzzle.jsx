@@ -5,6 +5,12 @@ import { io } from "socket.io-client";
 
 
 
+
+
+ 
+
+
+
 const encouragementNames = [
 
   "أسطوري", "خارق", "مميز", "مذهل", "رائع", "فريد", "لا يُقهر",
@@ -18,12 +24,16 @@ const encouragementNames = [
 ];
 
 
+ 
 
 
 
 
 
 
+// رابط السيرفر ثابت
+const SERVER_URL = "https://asset-manager--bdallahashrf110.replit.app";
+const socket = io(SERVER_URL);
 
 
 
@@ -125,7 +135,14 @@ const encouragementNames = [
 
 
 
-const socket = io("https://asset-manager--bdallahashrf110.replit.app");
+
+
+
+
+
+
+
+
 
 export default function Puzzle({ images = [], playerName = "Player" }) {
   const [gameImages, setGameImages] = useState([]);
@@ -255,31 +272,33 @@ useEffect(() => {
     return `${m}:${s}`;
   };
 
+
   const submit = () => {
     const isCorrect = answer.trim().toLowerCase() === img.answer.toLowerCase();
     socket.emit("playerAnswer", { isCorrect, index });
-    setStatus(isCorrect ? "correct" : "wrong");
-    isCorrect ? readySound.current.play().catch(() => {}) : unreadySound.current.play().catch(() => {});
+    if (isCorrect) {
+      setStatus("correct");
+      readySound.current.play().catch(() => {});
+      setSkipAvailable(true); // يظهر زر السكيب فوراً
+    } else {
+      setStatus("wrong");
+      unreadySound.current.play().catch(() => {});
+    }
   };
 
   const skip = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    socket.emit("requestScores");
-    setSkipAvailable(false);
-
     if (index + 1 >= imgs.length) {
       setIsFinished(true);
-      if (leader === playerName) {
-        setShowEncouragement(true);
-      } else {
-        setShowResults(true);
-        setFinalResults(true);
-      }
+      if (leader === playerName) setShowEncouragement(true);
+      else { setShowResults(true); setFinalResults(true); }
     } else {
-      setShowResults(true);
-      setFinalResults(false);
+      setIndex(index + 1);
+      setStatus("neutral");
+      setAnswer("");
+      setSkipAvailable(false);
     }
   };
+
 
   const nextQuestion = () => {
     setIndex(i => i + 1);
@@ -293,7 +312,19 @@ useEffect(() => {
     socket.once("updateScores", (data) => setScores(data.scores));
   };
 
-  if (!imgs.length) return <div style={{ color: "white", padding: 20 }}>في انتظار بدء اللعبة...</div>;
+ 
+
+
+
+
+  
+  if (!img) return <div style={{ color: "white" }}>Loading...</div>;
+
+  // معالجة رابط الصورة لضمان ظهورها
+  const getImageUrl = (url) => {
+    if (url.startsWith("http")) return url;
+    return `${SERVER_URL}${url}`;
+  };
 
   if (showEncouragement) {
     return (
