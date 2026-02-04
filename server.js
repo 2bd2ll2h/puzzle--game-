@@ -1,5 +1,7 @@
 
 
+
+
 const express = require("express");
 
 const http = require("http");
@@ -33,6 +35,11 @@ app.use(express.json());
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+
+
+
+
+
 
 
 
@@ -160,6 +167,11 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 
 
 
+
+
+
+
+
 if (!fs.existsSync('./uploads')) {
 
     fs.mkdirSync('./uploads');
@@ -179,6 +191,11 @@ let questionProgress = {}; // { questionIndex: { answered: false, winners: [] } 
 let countdownTimer = null;
 
 let countdownValue = 3;
+
+
+
+
+
 
 
 
@@ -222,39 +239,35 @@ const emitScores = (targetSocketId = null) => {
 
 const allReady = () => players.length > 0 && players.every(p => p.ready);
 
-
-
 const startCountdown = () => {
-
   if (countdownTimer) return;
-
   countdownValue = 3;
-
   io.emit("startCountdown", countdownValue);
-
   countdownTimer = setInterval(() => {
-
     countdownValue--;
-
     if (countdownValue > 0) {
-
       io.emit("startCountdown", countdownValue);
-
     } else {
-
       clearInterval(countdownTimer);
-
       countdownTimer = null;
-
       io.emit("startCountdown", 0);
-
       io.emit("gameStarted", savedImages);
-
+      
+      // التعديل هنا: بمجرد ما بعتنا الصور للكل واللعبة بدأت
+      // بنصفر القائمة في السيرفر عشان الدورة الجاية تكون فاضية
+      setTimeout(() => {
+          savedImages = []; 
+          console.log("تم تنظيف قائمة الصور للسيرفر استعداداً للدورة القادمة");
+      }, 2000); 
     }
-
   }, 1000);
-
 };
+
+
+
+
+
+
 
 
 
@@ -450,14 +463,20 @@ socket.on("checkSkipStatus", ({ index }) => {
 
 
 
-  socket.on("disconnect", () => {
+
+  
+
+socket.on("disconnect", () => {
+    // التعديل هنا: لو اللعبة لسه مبدأتش (العد التنازلي مش شغال)
+    // ورسترنا أو قفلنا الصفحة، بنصفر الصور عشان الأدمن يبدأ من جديد
+    if (countdownTimer === null) {
+      savedImages = [];
+      console.log("تم تصفير الصور لأن الأدمن/اللاعب خرج قبل بدء اللعبة");
+    }
 
     players = players.filter(p => p.id !== socket.id);
-
     emitPlayers();
-
     cancelCountdown();
-
   });
 
 });
@@ -676,7 +695,6 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
-
 
 
 
