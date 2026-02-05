@@ -194,7 +194,7 @@ let countdownValue = 3;
 
 
 
-
+let hints = {}; // لتخزين تلميحات الأسئلة { 0: "نص التلميح" }
 
 
 
@@ -212,6 +212,19 @@ const emitScores = (targetSocketId = null) => {
     .map(p => ({ name: p.name, score: p.score }));
 
 
+
+
+
+
+
+
+
+
+
+
+    
+
+    
 
   const data = {
 
@@ -385,12 +398,21 @@ io.on("connection", (socket) => {
 
 
 
+// استقبال التلميح من الأدمن وتوزيعه
+  socket.on("sendHint", ({ index, text }) => {
+    hints[index] = text; 
+    io.emit("receiveHint", { index, text }); // إرسال فوري للكل
+  });
 
+  // إرسال التلميح المخزن للاعب عند دخول سؤال جديد
+  socket.on("requestHint", (index) => {
+    if (hints[index]) {
+      socket.emit("receiveHint", { index, text: hints[index] });
+    }
+  });
 
-
-
-
-
+  // تصفير التلميحات عند تصفير اللعبة (أضفها داخل disconnect و startCountdown)
+  // hints = {};
 
 
 
