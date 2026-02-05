@@ -128,9 +128,22 @@ const socket = io("https://asset-manager--bdallahashrf110.replit.app");
 
 export default function Puzzle({ images = [], playerName = "Player" }) {
 
+
+
+
+
+
+
   const [gameImages, setGameImages] = useState([]);
 
   const [index, setIndex] = useState(0);
+
+
+
+
+
+  const [currentHint, setCurrentHint] = useState("");
+const isAdminView = playerName === "Admin"; // تأكد أن الأدمن يدخل بهذا الاسم أو عدل الشرط
 
   const [answer, setAnswer] = useState("");
 
@@ -140,7 +153,18 @@ export default function Puzzle({ images = [], playerName = "Player" }) {
 
   const [showResults, setShowResults] = useState(false);
 
+
+
+
+
+
+
   const [scores, setScores] = useState([]);
+
+
+
+
+
 
   const [showEncouragement, setShowEncouragement] = useState(false);
 
@@ -408,6 +432,25 @@ useEffect(() => {
 
 
 
+
+
+
+
+
+    setCurrentHint(""); // تصفير التلميح عند الانتقال لسؤال جديد
+    socket.emit("requestHint", index); // طلب التلميح المخزن للسؤال الحالي
+
+    // الاستماع للتلميحات الجديدة
+    socket.on("receiveHint", (data) => {
+        if (data.index === index) {
+            setCurrentHint(data.text);
+        }
+    });
+
+
+
+
+
     setAnswer("");
 
     setStatus("neutral");
@@ -451,17 +494,11 @@ useEffect(() => {
     }, 1000);
 
 
-
-    return () => {
-
+return () => {
+        socket.off("receiveHint");
         if (timerRef.current) clearInterval(timerRef.current);
-
     };
-
-}, [index, img, isFinished]); // أضفنا isFinished هنا كمراقب
-
-
-
+}, [index, img, isFinished]);
 
 
 
@@ -825,6 +862,8 @@ const refreshScores = () => {
 
 
 
+
+
   return (
 
     <div style={styles.page}>
@@ -833,17 +872,75 @@ const refreshScores = () => {
 
         <div style={styles.imageBox}>
 
+
           <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
 
         </div>
 
-        <div style={styles.side}>
+        <div style={styles.side}>            
+          <div style={styles.timer}>     ⏰ {formatTime(time)}</div>
 
-          <div style={styles.timer}>⏰ {formatTime(time)}</div>
+         
 
-          <input value={answer} onChange={e => setAnswer(e.target.value)} placeholder="اكتب الإجابة..." style={{ ...styles.input, background: status === "correct" ? "#22c55e" : status === "wrong" ? "#ef4444" : "#fff", color: status === "neutral" ? "#000" : "#fff" }} />
+          
 
-          <button onClick={submit} style={styles.submit}>Submit</button>
+{isAdminView && ( 
+  <div style={{ marginBottom : 13 , display: 'flex', gap: 10, background: '#f8fafc', padding: 10, borderRadius: 10, border: '1px solid #cbd5e1' }}>
+
+
+
+  <input 
+      id="hintInput" 
+      placeholder="اكتب تلميحاً سريعاً..." 
+      style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid #ddd' }} 
+    />
+    <button 
+      onClick={() => {
+        const val = document.getElementById('hintInput').value;
+        if(val) socket.emit("sendHint", { index, text: val });
+        document.getElementById('hintInput').value = "";
+      }}
+      style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '8px 15px', borderRadius: 6, cursor: 'pointer' }}
+    >
+      إرسال 💡
+    </button>
+  </div>
+)}
+
+
+
+
+
+
+
+
+
+{currentHint && (
+  <div style={{ 
+    background: "#fef9c3", 
+    color: "#854d0e"  ,
+        padding: "12px", 
+    borderRadius: "10px", 
+    marginBottom: "15px", 
+    border: "2px dashed #facc15", 
+    fontWeight: "bold", 
+    textAlign: "center",
+    fontSize: "18px",
+    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)"
+  }}>
+    💡 تلميح الأدمن: {currentHint}
+  </div>
+)}
+
+
+
+
+
+
+
+ <input value={answer} onChange={e => setAnswer(e.target.value)} placeholder="اكتب الإجابة..." style={{ ...styles.input, background: status === "correct" ? "#22c55e" : status === "wrong" ? "#ef4444" : "#fff", color: status === "neutral" ? "#000" : "#fff" }} />
+
+      {!isAdminView && <button onClick={submit} style={styles.submit}>Submit</button>}
 
           {skipAvailable && (<button onClick={skip} style={styles.next}>Skip</button>)}
 
@@ -856,7 +953,6 @@ const refreshScores = () => {
   );
 
 }
-
 
 
 const styles = {
